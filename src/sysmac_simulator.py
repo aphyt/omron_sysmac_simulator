@@ -45,7 +45,12 @@ class SysmacSimulator:
         return response
 
     def write_variable(self, variable_name: str, value):
-        pass
+        if variable_name not in self.variable_dictionary:
+            self.variable_dictionary[variable_name] = self.get_variable_info(variable_name)
+        variable_info = self.variable_dictionary[variable_name]
+        command = f'AsyncWriteMemText {variable_info.revision} 1 {variable_info.address},2,' + value.hex()
+        response = self.send_command(command)
+        return response
 
     def send_command(self, command):
         response = []
