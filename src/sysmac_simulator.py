@@ -1,5 +1,5 @@
 # Sysmac Simulator Connection
-# Copyright (C) 2024 Joseph RyanA
+# Copyright (C) 2024 Joseph Ryan
 # Copyright (C) 2021 Simumatik AB
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import ctypes
+import re
 
 
 class SimulatorVariable:
@@ -23,6 +24,9 @@ class SimulatorVariable:
         self.revision = revision
         self.address = address
         self.size = size
+        self.type = None
+        self.low_index = None
+        self.high_index = None
 
 
 class SysmacSimulator:
@@ -52,6 +56,27 @@ class SysmacSimulator:
         size = int(address.split(',')[-1])//8
         variable_info = SimulatorVariable(revision, address, size)
         return variable_info
+
+    def populate_from_file(self, filename: str):
+        with open(filename, 'r') as file:
+            next(file)
+            for line in file:
+                tokens = line.rstrip().split()
+                if len(tokens) > 1:
+                    if re.search(r'\[.*?\]', tokens[1]):
+                        indexes = re.findall(r'\[.*?\]', tokens[1])
+                        if len(indexes) > 0:
+                            indexes = re.sub(r'[\[{}\]]', '', indexes[0]).split('..')
+                        index = int(indexes[0])
+                        end = int(indexes[1])
+                        while index <= end:
+                            variable_name = tokens[0] + f'[{index}]'
+                            sim_variable = self.get_variable_info(variable_name)
+                            self.variable_dictionary[variable_name] = sim_variable
+                            index = index + 1
+                    else:
+                        sim_variable = self.get_variable_info(tokens[0])
+                        self.variable_dictionary[tokens[0]] = sim_variable
 
     def read_variable(self, variable_name: str):
         if variable_name not in self.variable_dictionary:
