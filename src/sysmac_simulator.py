@@ -17,6 +17,7 @@
 
 import ctypes
 import re
+import struct
 
 
 class SimulatorVariable:
@@ -65,6 +66,7 @@ class SysmacSimulator:
                 if len(tokens) > 1:
                     if re.search(r'\[.*?\]', tokens[1]):
                         indexes = re.findall(r'\[.*?\]', tokens[1])
+                        data_type = re.sub(r'\[.*?\]','', tokens[1])
                         if len(indexes) > 0:
                             indexes = re.sub(r'[\[{}\]]', '', indexes[0]).split('..')
                         index = int(indexes[0])
@@ -72,10 +74,12 @@ class SysmacSimulator:
                         while index <= end:
                             variable_name = tokens[0] + f'[{index}]'
                             sim_variable = self.get_variable_info(variable_name)
+                            sim_variable.type = data_type
                             self.variable_dictionary[variable_name] = sim_variable
                             index = index + 1
                     else:
                         sim_variable = self.get_variable_info(tokens[0])
+                        sim_variable.type = tokens[1]
                         self.variable_dictionary[tokens[0]] = sim_variable
 
     def read_variable(self, variable_name: str):
@@ -84,15 +88,83 @@ class SysmacSimulator:
         variable_info = self.variable_dictionary[variable_name]
         command = f'AsyncReadMemText {variable_info.revision} 1 {variable_info.address},2'
         response = self.send_command(command)[0][0]
+        response = self._unpack_bytes(response, variable_info.type)
         return response
 
     def write_variable(self, variable_name: str, value):
         if variable_name not in self.variable_dictionary:
             self.variable_dictionary[variable_name] = self.get_variable_info(variable_name)
         variable_info = self.variable_dictionary[variable_name]
-        command = f'AsyncWriteMemText {variable_info.revision} 1 {variable_info.address},2,' + value.hex()
+        send_bytes = self._pack_bytes(value, variable_info.type)
+        command = f'AsyncWriteMemText {variable_info.revision} 1 {variable_info.address},2,' + send_bytes.hex()
         response = self.send_command(command)
         return response
+
+    def _unpack_bytes(self, data, type):
+        result = None
+        if type == 'BOOL':
+            if data == b'\x01':
+                result = True
+            else:
+                result = False
+        elif type == 'SINT':
+            result = struct.unpack("<b", data)[0]
+        elif type == 'INT':
+            result = struct.unpack("<h", data)[0]
+        elif type == 'DINT':
+            result = struct.unpack("<l", data)[0]
+        elif type == 'LINT':
+            result = struct.unpack("<q", data)[0]
+        elif type == 'USINT':
+            result = struct.unpack("<B", data)[0]
+        elif type == 'UINT':
+            result = struct.unpack("<H", data)[0]
+        elif type == 'UDINT':
+            result = struct.unpack("<L", data)[0]
+        elif type == 'ULINT':
+            result = struct.unpack("<Q", data)[0]
+        elif type == 'REAL':
+            result = struct.unpack("<f", data)[0]
+        elif type == 'LREAL':
+            result = struct.unpack("<d", data)[0]
+        elif type == 'STRING':
+            pass
+        else:
+            pass
+        return result
+
+    def _pack_bytes(self, data, type):
+        packed_bytes = b''
+        if type == 'BOOL':
+            if data:
+                packed_bytes = b'\x01'
+            else:
+                packed_bytes = b'\x00'
+        elif type == 'SINT':
+            packed_bytes = struct.pack("<b", data)
+        elif type == 'INT':
+            packed_bytes = struct.pack("<h", data)
+        elif type == 'DINT':
+            packed_bytes = struct.pack("<l", data)
+        elif type == 'LINT':
+            packed_bytes = struct.pack("<q", data)
+        elif type == 'USINT':
+            packed_bytes = struct.pack("<B", data)
+        elif type == 'UINT':
+            packed_bytes = struct.pack("<H", data)
+        elif type == 'UDINT':
+            packed_bytes = struct.pack("<L", data)
+        elif type == 'ULINT':
+            packed_bytes = struct.pack("<Q", data)
+        elif type == 'REAL':
+            packed_bytes = struct.pack("<f", data)
+        elif type == 'LREAL':
+            packed_bytes = struct.pack("<d", data)
+        elif type == 'STRING':
+            pass
+        else:
+            pass
+        return packed_bytes
 
     def send_command(self, command):
         response = []
