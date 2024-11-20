@@ -95,73 +95,75 @@ class SysmacSimulator:
         if variable_name not in self.variable_dictionary:
             self.variable_dictionary[variable_name] = self.get_variable_info(variable_name)
         variable_info = self.variable_dictionary[variable_name]
-        send_bytes = self._pack_bytes(value, variable_info.type)
+        send_bytes = self._pack_bytes(value, variable_info.type, variable_info.size)
         command = f'AsyncWriteMemText {variable_info.revision} 1 {variable_info.address},2,' + send_bytes.hex()
         response = self.send_command(command)
         return response
 
-    def _unpack_bytes(self, data, type):
+    def _unpack_bytes(self, data, data_type):
         result = None
-        if type == 'BOOL':
+        if data_type == 'BOOL':
             if data == b'\x01':
                 result = True
             else:
                 result = False
-        elif type == 'SINT':
+        elif data_type == 'SINT':
             result = struct.unpack("<b", data)[0]
-        elif type == 'INT':
+        elif data_type == 'INT':
             result = struct.unpack("<h", data)[0]
-        elif type == 'DINT':
+        elif data_type == 'DINT':
             result = struct.unpack("<l", data)[0]
-        elif type == 'LINT':
+        elif data_type == 'LINT':
             result = struct.unpack("<q", data)[0]
-        elif type == 'USINT':
+        elif data_type == 'USINT':
             result = struct.unpack("<B", data)[0]
-        elif type == 'UINT':
+        elif data_type == 'UINT':
             result = struct.unpack("<H", data)[0]
-        elif type == 'UDINT':
+        elif data_type == 'UDINT':
             result = struct.unpack("<L", data)[0]
-        elif type == 'ULINT':
+        elif data_type == 'ULINT':
             result = struct.unpack("<Q", data)[0]
-        elif type == 'REAL':
+        elif data_type == 'REAL':
             result = struct.unpack("<f", data)[0]
-        elif type == 'LREAL':
+        elif data_type == 'LREAL':
             result = struct.unpack("<d", data)[0]
-        elif type == 'STRING':
-            pass
+        elif 'STRING' in data_type:
+            result = data.decode('utf-8').strip('\x00')
         else:
             pass
         return result
 
-    def _pack_bytes(self, data, type):
+    def _pack_bytes(self, data, data_type, size):
         packed_bytes = b''
-        if type == 'BOOL':
+        if data_type == 'BOOL':
             if data:
                 packed_bytes = b'\x01'
             else:
                 packed_bytes = b'\x00'
-        elif type == 'SINT':
+        elif data_type == 'SINT':
             packed_bytes = struct.pack("<b", data)
-        elif type == 'INT':
+        elif data_type == 'INT':
             packed_bytes = struct.pack("<h", data)
-        elif type == 'DINT':
+        elif data_type == 'DINT':
             packed_bytes = struct.pack("<l", data)
-        elif type == 'LINT':
+        elif data_type == 'LINT':
             packed_bytes = struct.pack("<q", data)
-        elif type == 'USINT':
+        elif data_type == 'USINT':
             packed_bytes = struct.pack("<B", data)
-        elif type == 'UINT':
+        elif data_type == 'UINT':
             packed_bytes = struct.pack("<H", data)
-        elif type == 'UDINT':
+        elif data_type == 'UDINT':
             packed_bytes = struct.pack("<L", data)
-        elif type == 'ULINT':
+        elif data_type == 'ULINT':
             packed_bytes = struct.pack("<Q", data)
-        elif type == 'REAL':
+        elif data_type == 'REAL':
             packed_bytes = struct.pack("<f", data)
-        elif type == 'LREAL':
+        elif data_type == 'LREAL':
             packed_bytes = struct.pack("<d", data)
-        elif type == 'STRING':
-            pass
+        elif 'STRING' in data_type:
+            packed_bytes = data.encode('utf-8')
+            length_difference = size - len(packed_bytes)
+            packed_bytes += length_difference * b'\x00'
         else:
             pass
         return packed_bytes
