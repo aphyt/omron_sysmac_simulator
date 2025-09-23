@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="omron-sysmac-simulator",
-    version="0.1.3",
+    version="0.1.4",
     author="Joseph Ryan",
     author_email="jr@aphyt.com",
     description="A library to communicate with Omron Sysmac Simulator",

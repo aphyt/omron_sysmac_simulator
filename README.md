@@ -27,7 +27,7 @@ The file "global_variables.txt", created using this process, is used in the exam
 # Example
 The following code will connect to the running simulator
 ```python
-from sysmac_simulator import *
+from omron_sysmac_simulator import *
 import time
 
 sim_driver = SysmacSimulator()
