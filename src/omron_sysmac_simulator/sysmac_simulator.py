@@ -78,6 +78,7 @@ class SysmacSimulator:
                             self.variable_dictionary[variable_name] = sim_variable
                             index = index + 1
                     else:
+                        print(tokens[0])
                         sim_variable = self.get_variable_info(tokens[0])
                         sim_variable.type = tokens[1]
                         self.variable_dictionary[tokens[0]] = sim_variable
