@@ -82,20 +82,41 @@ class SysmacSimulator:
                         sim_variable.type = tokens[1]
                         self.variable_dictionary[tokens[0]] = sim_variable
 
-    def read_variable(self, variable_name: str):
-        if variable_name not in self.variable_dictionary:
-            self.variable_dictionary[variable_name] = self.get_variable_info(variable_name)
-        variable_info = self.variable_dictionary[variable_name]
+    def read_variable(self, variable_name, type=None):
+        if isinstance(variable_name, str) and type is not None:
+            if variable_name not in self.variable_dictionary:
+                self.variable_dictionary[variable_name] = self.get_variable_info(
+                    variable_name)
+                self.variable_dictionary[variable_name].type = type
+            variable_info = self.variable_dictionary[variable_name]
+        elif isinstance(variable_name, str) and type is None:
+            if variable_name in self.variable_dictionary:
+                variable_info = self.variable_dictionary[variable_name]
+            else:
+                return
+        else:
+            variable_info = variable_name
         command = f'AsyncReadMemText {variable_info.revision} 1 {variable_info.address},2'
         response = self.send_command(command)[0][0]
         response = self._unpack_bytes(response, variable_info.type)
         return response
 
-    def write_variable(self, variable_name: str, value):
-        if variable_name not in self.variable_dictionary:
-            self.variable_dictionary[variable_name] = self.get_variable_info(variable_name)
-        variable_info = self.variable_dictionary[variable_name]
-        send_bytes = self._pack_bytes(value, variable_info.type, variable_info.size)
+    def write_variable(self, variable_name, value, type=None):
+        if isinstance(variable_name, str) and type is not None:
+            if variable_name not in self.variable_dictionary:
+                self.variable_dictionary[variable_name] = self.get_variable_info(
+                    variable_name)
+                self.variable_dictionary[variable_name].type = type
+            variable_info = self.variable_dictionary[variable_name]
+        elif isinstance(variable_name, str) and type is None:
+            if variable_name in self.variable_dictionary:
+                variable_info = self.variable_dictionary[variable_name]
+            else:
+                return
+        else:
+            variable_info = variable_name
+        send_bytes = self._pack_bytes(
+            value, variable_info.type, variable_info.size)
         command = f'AsyncWriteMemText {variable_info.revision} 1 {variable_info.address},2,' + send_bytes.hex()
         response = self.send_command(command)
         return response
